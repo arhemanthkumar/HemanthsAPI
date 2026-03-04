@@ -6,6 +6,8 @@ from fastapi.params import Body
 from pydantic import BaseModel # For input schema validation
 # Pydantic has lot of inbuilt data types which we can use to validate
 
+from typing import Optional
+
 # We are creating an (object - app) instance of a class called FastAPI
 # This will be the main point of interaction to create all the APIs
 app = FastAPI()
@@ -13,7 +15,8 @@ app = FastAPI()
 class Post(BaseModel):
     title: str
     content: str
-    published: bool = True # Keeping True as default
+    published: bool = True # Keeping True as default value
+    rating: Optional[int] = None # We can also keep an optional which can have None
 
 # This is called as a path operation
 @app.get("/") # A "path" is also commonly called an "endpoint" or a "route".
@@ -39,5 +42,5 @@ def get_posts():
 
 @app.post("/createposts") # Creating a POST method witht the path name -> /createposts
 def create_posts(posts: Post): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
-    print(posts) # Printing to check the contents
+    print(posts.rating) # Printing to check the contents
     return {"Success"} # Return message
