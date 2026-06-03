@@ -1,10 +1,12 @@
 # Importing the FastAPI module
 from fastapi import FastAPI
 
+# Importing Body from fastapi.params to capture the body content passed in JSON format from the client side in the POST method (for example: Postman)
 from fastapi.params import Body
 
 from pydantic import BaseModel # For input schema validation
 # Pydantic has lot of inbuilt data types which we can use to validate
+# https://pydantic.dev/docs/validation/1.10/usage/types/
 
 from typing import Optional
 
@@ -35,12 +37,12 @@ root() -> Function name
 def get_posts():
     return {"data": "This is your posts"}
 
-# @app.post("/createposts") # Creating a POST method witht the path name -> /createposts
+# @app.post("/createposts") # Creating a POST method with the path name -> /createposts
 # def create_posts(payLoad: dict = Body(...)): # This captures the Body content passed in JSON in dictionary format in the payLoad variable
 #     print(payLoad) # Printing to check the contents
 #     return {"Success": f"Your Title: {payLoad['title']} and Your Content: {payLoad['content']}"} # Return message
 
-@app.post("/createposts") # Creating a POST method witht the path name -> /createposts
+@app.post("/createposts") # Creating a POST method with the path name -> /createposts
 def create_posts(posts: Post): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
-    print(posts.rating) # Printing to check the contents
+    print(posts) # Printing to check the contents
     return {"Success"} # Return message
