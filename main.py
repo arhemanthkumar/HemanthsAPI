@@ -2,6 +2,7 @@
 from random import randrange
 
 from fastapi import FastAPI, HTTPException, status, Response
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status Refer for HTTP Response Codes
 
 # Importing Body from fastapi.params to capture the body content passed in JSON format from the client side in the POST method (for example: Postman)
 from fastapi.params import Body
@@ -41,6 +42,12 @@ def find_post(id):
     for individual_post in my_posts:
         if individual_post["id"] == id:
             return individual_post
+        
+# To get index of a post in my_posts DB (list)
+def find_index(id):
+    for index, post in enumerate(my_posts):
+        if post["id"] == id:
+            return index
 
 # This is called as a path operation
 @app.get("/") # A "path" is also commonly called an "endpoint" or a "route".
@@ -65,7 +72,7 @@ def get_posts():
 #     return {"Success": f"Your Title: {payLoad['title']} and Your Content: {payLoad['content']}"} # Return message
 
 
-@app.post("/posts") # Creating a POST method with the path name -> /createposts
+@app.post("/posts", status_code=status.HTTP_201_CREATED) # Creating a POST method with the path name -> /createposts , By default, sends Status Code as 201 upon successful creation.
 def create_posts(posts: Post): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
     # print(posts) # Printing to check the contents
     post_dict = posts.dict()
@@ -85,3 +92,20 @@ def get_post(id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
     
     return found_post
+
+# To delete a post
+@app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(id: int):
+
+    # Check the index with the ID
+    found_index = find_index(id)
+
+    # If there is no post of that ID -> Raise an exception
+    if found_index == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
+
+    # ID of the post must be present, we have the index, using that index, pop the post from my_posts
+    my_posts.pop(found_index)
+    
+    # 204 Status code does not allow any content in the console as 204 signifies NO_CONTENT
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
