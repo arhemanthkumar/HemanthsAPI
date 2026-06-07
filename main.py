@@ -1,4 +1,6 @@
 # Importing the FastAPI module
+from random import randrange
+
 from fastapi import FastAPI
 
 # Importing Body from fastapi.params to capture the body content passed in JSON format from the client side in the POST method (for example: Postman)
@@ -20,6 +22,20 @@ class Post(BaseModel):
     published: bool = True # Keeping True as default value
     rating: Optional[int] = None # We can also keep an optional which can have None
 
+# Example of the storage to do CRUD based operations.
+my_posts = [
+    {
+        "title": "Example title 1",
+        "content": "Example content 1",
+        "id": 1
+    },
+    {
+        "title": "Favourite Foods",
+        "content": "I like Pizza",
+        "id": 2
+    }
+]
+
 # This is called as a path operation
 @app.get("/") # A "path" is also commonly called an "endpoint" or a "route".
 async def root(): # async needed only when time constraints are present in function calling, can remove it.
@@ -35,14 +51,19 @@ root() -> Function name
 # Test path operation
 @app.get("/posts")
 def get_posts():
-    return {"data": "This is your posts"}
+    return {"data": my_posts}
 
 # @app.post("/createposts") # Creating a POST method with the path name -> /createposts
 # def create_posts(payLoad: dict = Body(...)): # This captures the Body content passed in JSON in dictionary format in the payLoad variable
 #     print(payLoad) # Printing to check the contents
 #     return {"Success": f"Your Title: {payLoad['title']} and Your Content: {payLoad['content']}"} # Return message
 
-@app.post("/createposts") # Creating a POST method with the path name -> /createposts
+@app.post("/posts") # Creating a POST method with the path name -> /createposts
 def create_posts(posts: Post): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
-    print(posts) # Printing to check the contents
-    return {"Success"} # Return message
+    # print(posts) # Printing to check the contents
+    post_dict = posts.dict()
+    post_dict["id"] = randrange(0, 1000000)
+    my_posts.append(post_dict)
+    # return {"Success"} # Return message
+    # print(posts.dict())
+    return post_dict
