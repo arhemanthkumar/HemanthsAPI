@@ -109,3 +109,26 @@ def delete_post(id: int):
     
     # 204 Status code does not allow any content in the console as 204 signifies NO_CONTENT
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# To Update a post
+@app.put("/posts/{id}")
+def update_post(id: int, new_post:Post):
+
+    # Check the index with the ID
+    found_index = find_index(id)
+
+    # If there is no post of that ID -> Raise an exception
+    if found_index == None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
+    
+    # As the new_post is not in dict format, we need to convert it into dict
+    new_post_dict = new_post.dict()
+
+    # now the new_post_dict does not have a ID, so we add the ID that is passed which is validated and present in our my_posts DB
+    new_post_dict["id"] = id
+
+    # Finally we replace the index of the my_posts with our newly constructed dict
+    my_posts[found_index] = new_post_dict
+    
+    return new_post
