@@ -1,7 +1,7 @@
 # Importing the FastAPI module
 from random import randrange
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status, Response
 
 # Importing Body from fastapi.params to capture the body content passed in JSON format from the client side in the POST method (for example: Postman)
 from fastapi.params import Body
@@ -36,6 +36,12 @@ my_posts = [
     }
 ]
 
+# To check if my_posts DB (list) has a post by the ID.
+def find_post(id):
+    for individual_post in my_posts:
+        if individual_post["id"] == id:
+            return individual_post
+
 # This is called as a path operation
 @app.get("/") # A "path" is also commonly called an "endpoint" or a "route".
 async def root(): # async needed only when time constraints are present in function calling, can remove it.
@@ -58,6 +64,7 @@ def get_posts():
 #     print(payLoad) # Printing to check the contents
 #     return {"Success": f"Your Title: {payLoad['title']} and Your Content: {payLoad['content']}"} # Return message
 
+
 @app.post("/posts") # Creating a POST method with the path name -> /createposts
 def create_posts(posts: Post): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
     # print(posts) # Printing to check the contents
@@ -67,3 +74,14 @@ def create_posts(posts: Post): # Here we are doing input validation by checking 
     # return {"Success"} # Return message
     # print(posts.dict())
     return post_dict
+
+# To get Individual post details by using ID
+@app.get("/post/{id}")
+def get_post(id: int):
+    found_post = find_post(id)
+
+    # Handling not found via HTTPException
+    if not found_post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
+    
+    return found_post
