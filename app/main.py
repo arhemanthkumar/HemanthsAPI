@@ -13,6 +13,33 @@ from pydantic import BaseModel # For input schema validation
 
 from typing import Optional
 
+import time
+
+import psycopg # Adapter for PostgresSQL
+from psycopg.rows import dict_row
+# Need dict_row to get column names when a query result comes
+
+while True:
+    try:
+        conn = psycopg.connect(
+            host = 'localhost',
+            dbname = 'fastapi',
+            user = "postgres",
+            password = "20032002",
+        row_factory = dict_row
+        )
+
+        cursor = conn.cursor()
+        print("Database Connection Successful")
+        break # Coming out of While Loop
+
+    except Exception as error:
+        print("Connection to the Database failed")
+        print("Error:", error)
+        print()
+        time.sleep(5)
+        
+
 # We are creating an (object - app) instance of a class called FastAPI
 # This will be the main point of interaction to create all the APIs
 app = FastAPI()
@@ -21,7 +48,6 @@ class Post(BaseModel):
     title: str
     content: str
     published: bool = True # Keeping True as default value
-    rating: Optional[int] = None # We can also keep an optional which can have None
 
 # Example of the storage to do CRUD based operations.
 my_posts = [
@@ -113,7 +139,7 @@ def delete_post(id: int):
 
 # To Update a post
 @app.put("/posts/{id}")
-def update_post(id: int, new_post:Post):
+def update_post(id: int, new_post:Post): # Validating the input Post class Schema
 
     # Check the index with the ID
     found_index = find_index(id)
