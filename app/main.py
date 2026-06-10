@@ -134,7 +134,6 @@ def delete_post(id: int):
 
     cursor.execute(f""" DELETE FROM posts WHERE id = {id} RETURNING *; """)
     found_post = cursor.fetchone()
-    print(found_post)
     conn.commit()
 
     # If there is no post of that ID -> Raise an exception
@@ -149,20 +148,12 @@ def delete_post(id: int):
 @app.put("/posts/{id}")
 def update_post(id: int, new_post:Post): # Validating the input Post class Schema
 
-    # Check the index with the ID
-    found_index = find_index(id)
+    cursor.execute(f""" UPDATE posts SET title = %s, content = %s, published = %s WHERE id = {id} RETURNING *; """,(new_post.title, new_post.content, new_post.published))
+    updated_post = cursor.fetchone()
+    conn.commit()
 
-    # If there is no post of that ID -> Raise an exception
-    if found_index == None:
+    if updated_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
     
-    # As the new_post is not in dict format, we need to convert it into dict
-    new_post_dict = new_post.dict()
-
-    # now the new_post_dict does not have a ID, so we add the ID that is passed which is validated and present in our my_posts DB
-    new_post_dict["id"] = id
-
-    # Finally we replace the index of the my_posts with our newly constructed dict
-    my_posts[found_index] = new_post_dict
     
-    return new_post
+    return updated_post
