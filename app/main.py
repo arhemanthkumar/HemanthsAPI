@@ -25,8 +25,8 @@ while True:
             host = 'localhost',
             dbname = 'fastapi',
             user = "postgres",
-            password = "20032002",
-        row_factory = dict_row
+            password = "20032003",
+            row_factory = dict_row
         )
 
         cursor = conn.cursor()
@@ -38,6 +38,7 @@ while True:
         print("Error:", error)
         print()
         time.sleep(5)
+        continue
         
 
 # We are creating an (object - app) instance of a class called FastAPI
@@ -90,7 +91,10 @@ root() -> Function name
 # Test path operation
 @app.get("/posts")
 def get_posts():
-    return {"data": my_posts}
+
+    cursor.execute("""SELECT * FROM posts""")
+    posts = cursor.fetchall()
+    return {"data": posts}
 
 # @app.post("/createposts") # Creating a POST method with the path name -> /createposts
 # def create_posts(payLoad: dict = Body(...)): # This captures the Body content passed in JSON in dictionary format in the payLoad variable
@@ -100,18 +104,20 @@ def get_posts():
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED) # Creating a POST method with the path name -> /createposts , By default, sends Status Code as 201 upon successful creation.
 def create_posts(posts: Post): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
-    # print(posts) # Printing to check the contents
-    post_dict = posts.dict()
-    post_dict["id"] = randrange(0, 1000000)
-    my_posts.append(post_dict)
-    # return {"Success"} # Return message
-    # print(posts.dict())
-    return post_dict
+    
+    cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *""",(posts.title, posts.content, posts.published) )
+    new_post = cursor.fetchone()
+    conn.commit()
+
+    return new_post
 
 # To get Individual post details by using ID
 @app.get("/post/{id}")
 def get_post(id: int):
-    found_post = find_post(id)
+    # found_post = find_post(id)
+
+    cursor.execute(f""" SELECT * FROM posts WHERE id = {id} """)
+    found_post = cursor.fetchall()
 
     # Handling not found via HTTPException
     if not found_post:
@@ -124,15 +130,17 @@ def get_post(id: int):
 def delete_post(id: int):
 
     # Check the index with the ID
-    found_index = find_index(id)
+    # found_index = find_index(id)
+
+    cursor.execute(f""" DELETE FROM posts WHERE id = {id} RETURNING *; """)
+    found_post = cursor.fetchone()
+    print(found_post)
+    conn.commit()
 
     # If there is no post of that ID -> Raise an exception
-    if found_index == None:
+    if found_post == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
 
-    # ID of the post must be present, we have the index, using that index, pop the post from my_posts
-    my_posts.pop(found_index)
-    
     # 204 Status code does not allow any content in the console as 204 signifies NO_CONTENT
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
