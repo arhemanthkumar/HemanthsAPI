@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, status, Response
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status Refer for HTTP Response Codes
 
 # Importing Body from fastapi.params to capture the body content passed in JSON format from the client side in the POST method (for example: Postman)
-from fastapi.params import Body
+from fastapi.params import Body, Depends
 
 from pydantic import BaseModel # For input schema validation
 # Pydantic has lot of inbuilt data types which we can use to validate
@@ -18,6 +18,12 @@ import time
 import psycopg # Adapter for PostgresSQL
 from psycopg.rows import dict_row
 # Need dict_row to get column names when a query result comes
+
+from . import models # Importing models.py file which has information about DB Tables
+from .database import engine, SessionLocal # Importing database.py file which has SqlAlchemy database connections and sessions logic
+from .database import get_db
+
+from sqlalchemy.orm import Session
 
 while True:
     try:
@@ -41,9 +47,13 @@ while True:
         continue
         
 
+models.Base.metadata.create_all(bind=engine)
+
 # We are creating an (object - app) instance of a class called FastAPI
 # This will be the main point of interaction to create all the APIs
 app = FastAPI()
+
+
 
 class Post(BaseModel):
     title: str
@@ -87,6 +97,12 @@ get -> Method name
 "/" -> Path name
 root() -> Function name
 '''
+
+# Testing
+@app.get("/sqlalchemy")
+def test_posts(db: Session = Depends(get_db)):
+    return {"status" : "success"}
+
 
 # Test path operation
 @app.get("/posts")
