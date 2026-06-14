@@ -8,9 +8,8 @@ from fastapi import FastAPI, HTTPException, status, Response
 # Importing Body from fastapi.params to capture the body content passed in JSON format from the client side in the POST method (for example: Postman)
 from fastapi.params import Body, Depends
 
-from pydantic import BaseModel # For input schema validation
-# Pydantic has lot of inbuilt data types which we can use to validate
-# https://pydantic.dev/docs/validation/1.10/usage/types/
+from app import schemas
+from schemas import Post
 
 from typing import Optional
 
@@ -55,11 +54,7 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 
-# SCHEMA from Pydantic Model
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True # Keeping True as default value
+
 
 # Example of the storage to do CRUD based operations.
 # my_posts = [
@@ -124,7 +119,7 @@ def get_posts(db: Session = Depends(get_db)):
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED) # Creating a POST method with the path name -> /createposts , By default, sends Status Code as 201 upon successful creation.
-def create_posts(posts: Post, db: Session = Depends(get_db)): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
+def create_posts(posts: schemas.Post, db: Session = Depends(get_db)): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
     
     # cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *""",(posts.title, posts.content, posts.published) )
     # new_post = cursor.fetchone()
@@ -181,7 +176,7 @@ def delete_post(id: int, db: Session = Depends(get_db)):
 
 # To Update a post
 @app.put("/posts/{id}")
-def update_post(id: int, new_post:Post, db: Session = Depends(get_db)): # Validating the input Post class Schema
+def update_post(id: int, new_post:schemas.Post, db: Session = Depends(get_db)): # Validating the input Post class Schema
 
     # cursor.execute(f""" UPDATE posts SET title = %s, content = %s, published = %s WHERE id = {id} RETURNING *; """,(new_post.title, new_post.content, new_post.published))
     # updated_post = cursor.fetchone()
