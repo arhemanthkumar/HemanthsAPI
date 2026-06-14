@@ -1,5 +1,6 @@
 # Importing the FastAPI module
 from random import randrange
+# from turtle import title
 
 from fastapi import FastAPI, HTTPException, status, Response
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status Refer for HTTP Response Codes
@@ -54,37 +55,37 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 
-
+# SCHEMA from Pydantic Model
 class Post(BaseModel):
     title: str
     content: str
     published: bool = True # Keeping True as default value
 
 # Example of the storage to do CRUD based operations.
-my_posts = [
-    {
-        "title": "Example title 1",
-        "content": "Example content 1",
-        "id": 1
-    },
-    {
-        "title": "Favourite Foods",
-        "content": "I like Pizza",
-        "id": 2
-    }
-]
+# my_posts = [
+#     {
+#         "title": "Example title 1",
+#         "content": "Example content 1",
+#         "id": 1
+#     },
+#     {
+#         "title": "Favourite Foods",
+#         "content": "I like Pizza",
+#         "id": 2
+#     }
+# ]
 
 # To check if my_posts DB (list) has a post by the ID.
-def find_post(id):
-    for individual_post in my_posts:
-        if individual_post["id"] == id:
-            return individual_post
+# def find_post(id):
+#     for individual_post in my_posts:
+#         if individual_post["id"] == id:
+#             return individual_post
         
 # To get index of a post in my_posts DB (list)
-def find_index(id):
-    for index, post in enumerate(my_posts):
-        if post["id"] == id:
-            return index
+# def find_index(id):
+#     for index, post in enumerate(my_posts):
+#         if post["id"] == id:
+#             return index
 
 # This is called as a path operation
 @app.get("/") # A "path" is also commonly called an "endpoint" or a "route".
@@ -99,17 +100,21 @@ root() -> Function name
 '''
 
 # Testing
-@app.get("/sqlalchemy")
-def test_posts(db: Session = Depends(get_db)):
-    return {"status" : "success"}
+# @app.get("/sqlalchemy")
+# def test_posts(db: Session = Depends(get_db)):
+#     all_posts = db.query(models.Post).all()
+#     return all_posts
 
 
 # Test path operation
 @app.get("/posts")
-def get_posts():
+def get_posts(db: Session = Depends(get_db)):
 
-    cursor.execute("""SELECT * FROM posts""")
-    posts = cursor.fetchall()
+    # cursor.execute("""SELECT * FROM posts""")
+    # posts = cursor.fetchall()
+
+    posts = db.query(models.Post).all() # SQLALCHEMY ORM
+
     return {"data": posts}
 
 # @app.post("/createposts") # Creating a POST method with the path name -> /createposts
@@ -119,21 +124,30 @@ def get_posts():
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED) # Creating a POST method with the path name -> /createposts , By default, sends Status Code as 201 upon successful creation.
-def create_posts(posts: Post): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
+def create_posts(posts: Post, db: Session = Depends(get_db)): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
     
-    cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *""",(posts.title, posts.content, posts.published) )
-    new_post = cursor.fetchone()
-    conn.commit()
+    # cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *""",(posts.title, posts.content, posts.published) )
+    # new_post = cursor.fetchone()
+    # conn.commit()
+
+    # new_post = models.Post(title=posts.title, content=posts.content, published=posts.published) # SQLALCHEMY ORM
+    new_post = models.Post(**posts.dict()) # Easier way -> Takes the Pydantic valdiation model which is in dicticonary and unpacks it.
+
+    db.add(new_post) # Add to the DB
+    db.commit() # Commit changes to the DB
+    db.refresh(new_post) # Get the latest post back
 
     return new_post
 
 # To get Individual post details by using ID
 @app.get("/post/{id}")
-def get_post(id: int):
+def get_post(id: int, db: Session = Depends(get_db)):
     # found_post = find_post(id)
 
-    cursor.execute(f""" SELECT * FROM posts WHERE id = {id} """)
-    found_post = cursor.fetchall()
+    # cursor.execute(f""" SELECT * FROM posts WHERE id = {id} """)
+    # found_post = cursor.fetchall()
+
+    found_post = db.query(models.Post).filter(models.Post.id == id).first() # SQLALCHEMY ORM
 
     # Handling not found via HTTPException
     if not found_post:
@@ -143,18 +157,23 @@ def get_post(id: int):
 
 # To delete a post
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int):
+def delete_post(id: int, db: Session = Depends(get_db)):
 
     # Check the index with the ID
     # found_index = find_index(id)
 
-    cursor.execute(f""" DELETE FROM posts WHERE id = {id} RETURNING *; """)
-    found_post = cursor.fetchone()
-    conn.commit()
+    # cursor.execute(f""" DELETE FROM posts WHERE id = {id} RETURNING *; """)
+    # found_post = cursor.fetchone()
+    # conn.commit()
+
+    found_post = db.query(models.Post).filter(models.Post.id == id) # SQLALCHEMY ORM
 
     # If there is no post of that ID -> Raise an exception
-    if found_post == None:
+    if found_post.first() == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
+    
+    found_post.delete(synchronize_session=False)
+    db.commit()
 
     # 204 Status code does not allow any content in the console as 204 signifies NO_CONTENT
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -162,14 +181,19 @@ def delete_post(id: int):
 
 # To Update a post
 @app.put("/posts/{id}")
-def update_post(id: int, new_post:Post): # Validating the input Post class Schema
+def update_post(id: int, new_post:Post, db: Session = Depends(get_db)): # Validating the input Post class Schema
 
-    cursor.execute(f""" UPDATE posts SET title = %s, content = %s, published = %s WHERE id = {id} RETURNING *; """,(new_post.title, new_post.content, new_post.published))
-    updated_post = cursor.fetchone()
-    conn.commit()
+    # cursor.execute(f""" UPDATE posts SET title = %s, content = %s, published = %s WHERE id = {id} RETURNING *; """,(new_post.title, new_post.content, new_post.published))
+    # updated_post = cursor.fetchone()
+    # conn.commit()
 
-    if updated_post == None:
+    updated_post = db.query(models.Post).filter(models.Post.id == id) # SQLALCHEMY ORM
+
+    if updated_post.first() == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
     
-    
-    return updated_post
+    # updated_post.update({'title':"my new title", 'content':"my new content"}, synchronize_session=False)
+    updated_post.update(new_post.dict(), synchronize_session=False)
+    db.commit()
+
+    return updated_post.first()
