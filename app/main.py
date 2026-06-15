@@ -8,10 +8,11 @@ from fastapi import FastAPI, HTTPException, status, Response
 # Importing Body from fastapi.params to capture the body content passed in JSON format from the client side in the POST method (for example: Postman)
 from fastapi.params import Body, Depends
 
+# Getting Schema Validation file
 from app import schemas
-from schemas import Post
+from .schemas import Post
 
-from typing import Optional
+from typing import Optional, List
 
 import time
 
@@ -25,26 +26,26 @@ from .database import get_db
 
 from sqlalchemy.orm import Session
 
-while True:
-    try:
-        conn = psycopg.connect(
-            host = 'localhost',
-            dbname = 'fastapi',
-            user = "postgres",
-            password = "20032003",
-            row_factory = dict_row
-        )
+# while True:
+#     try:
+#         conn = psycopg.connect(
+#             host = 'localhost',
+#             dbname = 'fastapi',
+#             user = "postgres",
+#             password = "20032003",
+#             row_factory = dict_row
+#         )
 
-        cursor = conn.cursor()
-        print("Database Connection Successful")
-        break # Coming out of While Loop
+#         cursor = conn.cursor()
+#         print("Database Connection Successful")
+#         break # Coming out of While Loop
 
-    except Exception as error:
-        print("Connection to the Database failed")
-        print("Error:", error)
-        print()
-        time.sleep(5)
-        continue
+#     except Exception as error:
+#         print("Connection to the Database failed")
+#         print("Error:", error)
+#         print()
+#         time.sleep(5)
+#         continue
         
 
 models.Base.metadata.create_all(bind=engine)
@@ -94,15 +95,15 @@ get -> Method name
 root() -> Function name
 '''
 
-# Testing
+# Test path operation for SQLAlchemy
 # @app.get("/sqlalchemy")
 # def test_posts(db: Session = Depends(get_db)):
 #     all_posts = db.query(models.Post).all()
 #     return all_posts
 
 
-# Test path operation
-@app.get("/posts")
+# To GET all the posts
+@app.get("/posts", response_model=List[schemas.PostResponse])
 def get_posts(db: Session = Depends(get_db)):
 
     # cursor.execute("""SELECT * FROM posts""")
@@ -110,7 +111,7 @@ def get_posts(db: Session = Depends(get_db)):
 
     posts = db.query(models.Post).all() # SQLALCHEMY ORM
 
-    return {"data": posts}
+    return posts
 
 # @app.post("/createposts") # Creating a POST method with the path name -> /createposts
 # def create_posts(payLoad: dict = Body(...)): # This captures the Body content passed in JSON in dictionary format in the payLoad variable
@@ -118,8 +119,9 @@ def get_posts(db: Session = Depends(get_db)):
 #     return {"Success": f"Your Title: {payLoad['title']} and Your Content: {payLoad['content']}"} # Return message
 
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED) # Creating a POST method with the path name -> /createposts , By default, sends Status Code as 201 upon successful creation.
-def create_posts(posts: schemas.Post, db: Session = Depends(get_db)): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
+# To create a post
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse) # Creating a POST method with the path name -> /createposts , By default, sends Status Code as 201 upon successful creation.
+def create_posts(posts: schemas.PostCreate, db: Session = Depends(get_db)): # Here we are doing input validation by checking if the variable posts has the title and content and are of right type by using Post Extended class
     
     # cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *""",(posts.title, posts.content, posts.published) )
     # new_post = cursor.fetchone()
@@ -134,8 +136,9 @@ def create_posts(posts: schemas.Post, db: Session = Depends(get_db)): # Here we 
 
     return new_post
 
+
 # To get Individual post details by using ID
-@app.get("/post/{id}")
+@app.get("/post/{id}", response_model=schemas.PostResponse)
 def get_post(id: int, db: Session = Depends(get_db)):
     # found_post = find_post(id)
 
@@ -149,6 +152,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=(f"{id} not found"))
     
     return found_post
+
 
 # To delete a post
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -175,8 +179,8 @@ def delete_post(id: int, db: Session = Depends(get_db)):
 
 
 # To Update a post
-@app.put("/posts/{id}")
-def update_post(id: int, new_post:schemas.Post, db: Session = Depends(get_db)): # Validating the input Post class Schema
+@app.put("/posts/{id}", response_model=schemas.PostResponse)
+def update_post(id: int, new_post:schemas.PostCreate, db: Session = Depends(get_db)): # Validating the input Post class Schema
 
     # cursor.execute(f""" UPDATE posts SET title = %s, content = %s, published = %s WHERE id = {id} RETURNING *; """,(new_post.title, new_post.content, new_post.published))
     # updated_post = cursor.fetchone()
