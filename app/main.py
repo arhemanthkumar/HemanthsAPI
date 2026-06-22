@@ -196,3 +196,15 @@ def update_post(id: int, new_post:schemas.PostCreate, db: Session = Depends(get_
     db.commit()
 
     return updated_post.first()
+
+# To create a user
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse) 
+def create_posts(user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    new_user = models.User(**user.dict()) 
+
+    db.add(new_user) # Add to the DB
+    db.commit() # Commit changes to the DB
+    db.refresh(new_user) # Get the latest post back
+
+    return new_user
