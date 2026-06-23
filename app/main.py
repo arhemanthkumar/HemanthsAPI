@@ -16,9 +16,6 @@ from typing import Optional, List
 
 import time
 
-from pwdlib import PasswordHash
-
-password_hash = PasswordHash.recommended()
 
 
 import psycopg # Adapter for PostgresSQL
@@ -28,6 +25,7 @@ from psycopg.rows import dict_row
 from . import models # Importing models.py file which has information about DB Tables
 from .database import engine, SessionLocal # Importing database.py file which has SqlAlchemy database connections and sessions logic
 from .database import get_db
+from . import utils
 
 from sqlalchemy.orm import Session
 
@@ -207,7 +205,7 @@ def update_post(id: int, new_post:schemas.PostCreate, db: Session = Depends(get_
 def create_posts(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     # hash the password from user.password
-    hashed_password = password_hash.hash(user.password)
+    hashed_password = utils.hash(user.password)
 
     user.password = hashed_password
 
