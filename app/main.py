@@ -16,6 +16,11 @@ from typing import Optional, List
 
 import time
 
+from pwdlib import PasswordHash
+
+password_hash = PasswordHash.recommended()
+
+
 import psycopg # Adapter for PostgresSQL
 from psycopg.rows import dict_row
 # Need dict_row to get column names when a query result comes
@@ -200,6 +205,11 @@ def update_post(id: int, new_post:schemas.PostCreate, db: Session = Depends(get_
 # To create a user
 @app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse) 
 def create_posts(user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    # hash the password from user.password
+    hashed_password = password_hash.hash(user.password)
+
+    user.password = hashed_password
 
     new_user = models.User(**user.dict()) 
 
