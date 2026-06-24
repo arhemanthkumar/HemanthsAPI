@@ -216,3 +216,14 @@ def create_posts(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user) # Get the latest post back
 
     return new_user
+
+# To get ID of a user
+@app.get("/users/{id}", response_model=schemas.UserResponse)
+def get_user(id: int, db:Session = Depends(get_db)):
+
+    found_user = db.query(models.User).filter(models.User.id == id).first()
+
+    if not found_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= f"User with id {id} does not exist")
+    
+    return found_user
