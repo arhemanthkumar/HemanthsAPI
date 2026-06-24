@@ -29,7 +29,9 @@ from sqlalchemy.orm import Session
 
 
 
-router = APIRouter()
+router = APIRouter(
+    tags=['Posts']
+)
 
 # To GET all the posts
 @router.get("/posts", response_model=List[schemas.PostResponse])

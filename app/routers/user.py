@@ -17,7 +17,9 @@ from .. import utils
 
 from sqlalchemy.orm import Session
 
-router = APIRouter()
+router = APIRouter(
+    tags=['Users']
+)
 
 # To create a user
 @router.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse) 
